@@ -4,5 +4,7 @@
 :set -XDerivingStrategies
 :set -XDeriveAnyClass
 :set -XForeignFunctionInterface
+:set -XLambdaCase
+:set -XNamedFieldPuns
 :set -XRecordWildCards
 :set -XViewPatterns

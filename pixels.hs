@@ -23,12 +23,11 @@ defaultVisualOfDisplay display = X.defaultVisualOfScreen (X.defaultScreenOfDispl
 
 setWMProtocols Atoms{..} display window = X.setWMProtocols display window [wmDeleteWindow]
 
-handleEvent Atoms{..} display X.ClientMessageEvent{ev_message_type = (== wmProtocols) -> True, ev_data = (maybe False (\x -> toInteger x == toInteger wmDeleteWindow) . headMaybe) -> True} = exitMaybeT
+handleEvent Atoms{..} display = \case
+    X.ClientMessageEvent{ev_message_type, ev_data} | ev_message_type == wmProtocols, fmap toInteger (headMaybe ev_data) == Just (toInteger wmDeleteWindow) -> exitMaybeT
+    _ -> pure ()
 
-handleEvent _ _ _ = pure ()
-
-headMaybe (x:_) = Just x
-headMaybe [] = Nothing
+headMaybe = \case x : _ -> Just x; [] -> Nothing
 
 exitMaybeT = MaybeT (pure Nothing)
 
