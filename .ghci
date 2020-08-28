@@ -1,0 +1,8 @@
+:set -package X11
+:set -XBlockArguments
+:set -XDeriveGeneric
+:set -XDerivingStrategies
+:set -XDeriveAnyClass
+:set -XForeignFunctionInterface
+:set -XRecordWildCards
+:set -XViewPatterns
