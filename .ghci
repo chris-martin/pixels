@@ -1,10 +1,9 @@
+:set -Wall
+:set -package relude
 :set -package X11
 :set -XBlockArguments
-:set -XDeriveGeneric
-:set -XDerivingStrategies
-:set -XDeriveAnyClass
-:set -XForeignFunctionInterface
 :set -XLambdaCase
+:set -XMultiWayIf
 :set -XNamedFieldPuns
+:set -XNoImplicitPrelude
 :set -XRecordWildCards
-:set -XViewPatterns
