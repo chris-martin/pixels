@@ -9,7 +9,12 @@ main :: IO ()
 main = withSetup eventLoop
 
 -- everything that gets created before the main event loop starts
-data Setup = Setup { atoms :: Atoms, display :: X.Display, window :: X.Window, eventPtr :: X.XEventPtr }
+data Setup = Setup
+  { atoms :: {-# UNPACK #-} !Atoms
+  , display :: !X.Display
+  , window :: !X.Window
+  , eventPtr :: !X.XEventPtr
+  }
 
 withSetup :: (Setup -> IO a) -> IO a
 withSetup f =
@@ -65,7 +70,10 @@ integerEq :: (Integral a, Integral b) => a -> b -> Bool
 integerEq a b = toInteger a == toInteger b
 
 -- all of the X atoms that we use in the program
-data Atoms = Atoms { atom_WM_DELETE_WINDOW :: X.Atom, atom_WM_PROTOCOLS :: X.Atom }
+data Atoms = Atoms
+  { atom_WM_DELETE_WINDOW :: !X.Atom
+  , atom_WM_PROTOCOLS :: !X.Atom
+  }
 
 createAtoms :: X.Display -> IO Atoms
 createAtoms display =
