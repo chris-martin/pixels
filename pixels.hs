@@ -48,11 +48,18 @@ createWindow :: X.Display -> IO X.Window
 createWindow display =
     X.allocaSetWindowAttributes \attr ->
     X.defaultRootWindow display & \parent ->
-    defaultVisualOfDisplay display & \visual ->
-    X.createWindow display parent 0 0 500 500 5 0 X.copyFromParent visual 0 attr
-
-defaultVisualOfDisplay :: X.Display -> X.Visual
-defaultVisualOfDisplay = X.defaultVisualOfScreen . X.defaultScreenOfDisplay
+    X.defaultScreenOfDisplay display & \screen ->
+    X.defaultVisualOfScreen screen & \visual ->
+    X.defaultDepthOfScreen screen & \depth ->
+    X.createWindow display parent
+        0 0 -- position
+        500 500 -- size
+        0 -- border width
+        depth
+        X.inputOutput
+        visual
+        0 -- which window attributes are defined in attr
+        attr
 
 setWMProtocols :: Setup -> IO ()
 setWMProtocols Setup{ atoms = Atoms{..}, display, window } =
