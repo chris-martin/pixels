@@ -4,6 +4,7 @@ import Relude
 import Control.Exception (bracket)
 import qualified Graphics.X11 as X
 import qualified Graphics.X11.Xlib.Extras as X
+import Foreign.C.Types (CInt)
 
 main :: IO ()
 main = withSetup eventLoop
@@ -24,7 +25,6 @@ withSetup f =
 
     -- drawing stuff
     X.defaultScreenOfDisplay display & \screen ->
-    X.defaultDepthOfScreen screen & \depth ->
     bracket (X.createPixmap display window 2 2 depth) (X.freePixmap display) \bg ->
     bracket (X.createGC display bg) (X.freeGC display) \gc ->
     X.setForeground display gc (X.whitePixelOfScreen screen) *>
@@ -62,7 +62,6 @@ createWindow display =
     X.defaultRootWindow display & \parent ->
     X.defaultScreenOfDisplay display & \screen ->
     X.defaultVisualOfScreen screen & \visual ->
-    X.defaultDepthOfScreen screen & \depth ->
     X.createWindow display parent
         0 0 -- position
         500 500 -- size
@@ -101,3 +100,8 @@ createAtoms display =
     pure Atoms{..}
   where
     atom string = X.internAtom display string False
+
+type Depth = CInt
+
+depth :: Depth
+depth = 24
