@@ -5,6 +5,7 @@ import Control.Exception (bracket)
 import qualified Graphics.X11 as X
 import qualified Graphics.X11.Xlib.Extras as X
 import Foreign.C.Types (CInt)
+import Data.Bits
 
 main :: IO ()
 main = withSetup eventLoop
@@ -23,13 +24,12 @@ withSetup f =
     createAtoms display >>= \atoms ->
     withWindow display \window ->
 
-    -- drawing stuff
-    X.defaultScreenOfDisplay display & \screen ->
+    -- background
     bracket (X.createPixmap display window 2 2 depth) (X.freePixmap display) \bg ->
     bracket (X.createGC display bg) (X.freeGC display) \gc ->
-    X.setForeground display gc (X.whitePixelOfScreen screen) *>
+    X.setForeground display gc (shift 150 16 .|. shift 0 8 .|. 150) *>
     X.drawPoints display bg gc [X.Point 0 1, X.Point 1 0] X.coordModeOrigin *>
-    X.setForeground display gc (X.blackPixelOfScreen screen) *>
+    X.setForeground display gc (shift 255 16 .|. shift 180 8 .|. 255) *>
     X.drawPoints display bg gc [X.Point 0 0, X.Point 1 1] X.coordModeOrigin *>
     X.setWindowBackgroundPixmap display window bg *>
 
