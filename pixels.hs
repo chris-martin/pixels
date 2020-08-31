@@ -21,6 +21,18 @@ withSetup f =
     withDefaultDisplay \display ->
     createAtoms display >>= \atoms ->
     withWindow display \window ->
+
+    -- drawing stuff
+    X.defaultScreenOfDisplay display & \screen ->
+    X.defaultDepthOfScreen screen & \depth ->
+    bracket (X.createPixmap display window 2 2 depth) (X.freePixmap display) \bg ->
+    bracket (X.createGC display bg) (X.freeGC display) \gc ->
+    X.setForeground display gc (X.whitePixelOfScreen screen) *>
+    X.drawPoints display bg gc [X.Point 0 1, X.Point 1 0] X.coordModeOrigin *>
+    X.setForeground display gc (X.blackPixelOfScreen screen) *>
+    X.drawPoints display bg gc [X.Point 0 0, X.Point 1 1] X.coordModeOrigin *>
+    X.setWindowBackgroundPixmap display window bg *>
+
     X.allocaXEvent \eventPtr ->
     Setup{ atoms, display, window, eventPtr } & \setup ->
     setWMProtocols setup *>
