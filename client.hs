@@ -34,14 +34,22 @@ square x = x * x
 circle :: Seed -> Image
 circle seed = \x y ->
     let
-      dX = square (x - (width `div` 2))
-      dY = square (y - (height `div` 2))
+      dX = square (x - x2)
+      dY = square (y - y2)
       s = dX + dY
     in
-      if s > 3600 && s < 4225 then c1 else c2
+      if x > x2 - 65 &&
+         x < x2 + 65 &&
+         y > y2 - 65 &&
+         y < y2 + 65 &&
+         s > square 60 &&
+         s < square 65
+      then c1 else c2
   where
     c1 = rgb 150 0 150
     c2 = rgb 255 180 (fromInteger (seed `mod` 255))
+    x2 = width `div` 2
+    y2 = height `div` 2
 
 write :: Ptr Word64 -> Image -> IO ()
 write p f =
