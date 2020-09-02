@@ -40,7 +40,10 @@ circle seed = \x y ->
     c2 = rgb 255 180 (fromInteger (seed `mod` 255))
 
 write :: Ptr Word32 -> Image -> IO ()
-write p f = traverse_ (\i -> let (y, x) = quotRem i 500 in pokeElemOff p i (f x y)) [0 .. square 500 - 1]
+write p f = traverse_ (\((x, y), i) -> pokeElemOff p i (f x y)) points
+  where
+    points :: [((Int, Int), Int)]
+    points = zip ((,) <$> [0..499] <*> [0..499]) [0..]
 
 rgb :: Word32 -> Word32 -> Word32 -> Word32
 rgb r g b = shift r 16 .|. shift g 8 .|. b :: Word32
