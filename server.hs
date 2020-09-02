@@ -4,10 +4,16 @@ import Relude
 import Control.Exception (bracket)
 import qualified Graphics.X11 as X
 import qualified Graphics.X11.Xlib.Extras as X
-import Foreign.C.Types (CInt)
-import Foreign.Marshal.Alloc
+import Foreign.C.Types (CChar, CInt)
+import Foreign.Marshal.Alloc (callocBytes)
 import Foreign.Storable
 import Data.Bits
+import SharedMemory
+import System.Posix.IO (closeFd)
+import System.Posix.SharedMem
+import System.Posix.Types
+import Foreign.Ptr (Ptr, castPtr)
+import Foreign.ForeignPtr
 
 main :: IO ()
 main = withSetup eventLoop
@@ -23,7 +29,7 @@ data Setup = Setup
   }
 
 withSetup :: (Setup -> IO a) -> IO a
-withSetup f =
+withSetup go =
     withDefaultDisplay \display ->
     createAtoms display >>= \atoms ->
     pure (X.defaultScreenOfDisplay display) >>= \screen ->
@@ -40,35 +46,28 @@ withSetup f =
     X.setWindowBackgroundPixmap display window bg *>
 
     -- initialize image
-    callocBytes (500 * 500 * 4) >>= \imageData -> -- freed when the image is destroyed
-    bracket (X.createImage display visual depth X.zPixmap 0 imageData 500 500 8 0) X.destroyImage \image ->
+    -- don't need this anymore because openSharedMemory is allocating it instead
+    -- callocBytes (500 * 500 * 4) >>= \imageData ->
 
-    -- draw image
-    (
-      let
-        c1 = (150, 0, 150)
-        c2 = (255, 180, 255)
-      in
-        traverse_
-            (\(x, y) ->
-              let
-                dX = abs (fromIntegral x - 250) ^ 2
-                dY = abs (fromIntegral y - 250) ^ 2
-                s = sqrt (dX + dY)
-                (r, g, b) = if s > 60 && s < 65 then c1 else c2
-              in
-                pokeElemOff imageData (4 * (y * 500 + x) + 0) r *>
-                pokeElemOff imageData (4 * (y * 500 + x) + 1) g *>
-                pokeElemOff imageData (4 * (y * 500 + x) + 2) b
-            )
-            ((,) <$> [0..499] <*> [0..499])
-    ) *>
+    bracket (openSharedMemory "pixels" (500 * 500 * 4) (ShmOpenFlags True True True True) (ownerRead .|. ownerWrite)) (\(x, fd) -> shmUnlink "pixels") \(sharedImageDataForeignPtr, _) ->
+    withForeignPtr sharedImageDataForeignPtr \imageData' ->
+    pure (castPtr imageData' :: Ptr CChar) >>= \imageData ->
+
+    --bracket (X.createImage display visual depth X.zPixmap 0 imageData 500 500 8 0) X.destroyImage \image ->
+    --todo: when we destroy the image, X frees the memory, and that's not what we want
+    X.createImage display visual depth X.zPixmap 0 imageData 500 500 8 0 >>= \image ->
 
     X.allocaXEvent \eventPtr ->
     pure Setup{ atoms, display, window, gc, image, eventPtr } >>= \setup ->
     setWMProtocols setup *>
     X.mapWindow display window *>
-    f setup
+
+    go setup
+
+-- https://jameshfisher.com/2017/02/24/what-is-mode_t/
+ownerRead, ownerWrite :: CMode
+ownerRead = 1 `shift` 8
+ownerWrite = 1 `shift` 7
 
 eventLoop :: Setup -> IO ()
 eventLoop setup@Setup{ display, eventPtr } =
