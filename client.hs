@@ -32,24 +32,26 @@ square :: Int -> Int
 square x = x * x
 
 circle :: Seed -> Image
-circle seed = \x y ->
+circle seed =
+  \x y ->
     let
       dX = square (x - x2)
       dY = square (y - y2)
       s = dX + dY
     in
-      if x > x2 - 65 &&
-         x < x2 + 65 &&
-         y > y2 - 65 &&
-         y < y2 + 65 &&
-         s > square 60 &&
-         s < square 65
-      then c1 else c2
+      if | x > x2 - 65 && x < x2 + 65 &&
+           y > y2 - 65 && y < y2 + 65 &&
+           s > square60 && s < square65 -> c1
+         | s > square65 -> c3 (fromIntegral s `div` 100)
+         | otherwise -> c2
   where
-    c1 = rgb 150 0 150
+    c1 = rgb 50 50 50
     c2 = rgb 255 180 (fromInteger (seed `mod` 255))
+    c3 q = rgb (200 * q) (200 * q) (200 * q)
     x2 = width `div` 2
     y2 = height `div` 2
+    square60 = square 60
+    square65 = square 65
 
 write :: Ptr Word64 -> Image -> IO ()
 write p f =
