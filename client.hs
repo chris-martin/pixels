@@ -9,18 +9,22 @@ import Foreign.Ptr (Ptr, castPtr)
 import Foreign.Storable (pokeElemOff)
 import Foreign.ForeignPtr (finalizeForeignPtr, withForeignPtr)
 
+width, height :: Num a => a
+width = 800
+height = 500
+
 main :: IO ()
 main =
     Time.getCurrentTime >>= \t1 ->
     pure (Time.diffTimeToPicoseconds $ Time.utctDayTime t1) >>= \seed ->
-    bracket (openSharedMemory "pixels" (500 * 500 * 4) (ShmOpenFlags True False False True) 0) (\(x, fd) -> finalizeForeignPtr x <> closeFd fd) \(sharedImageDataForeignPtr, _) ->
+    bracket (openSharedMemory "pixels" (width * height * 4) (ShmOpenFlags True False False True) 0) (\(x, fd) -> finalizeForeignPtr x <> closeFd fd) \(sharedImageDataForeignPtr, _) ->
     withForeignPtr sharedImageDataForeignPtr \imageData' ->
     pure (castPtr imageData') >>= \imageData ->
     write imageData (circle seed) *>
     Time.getCurrentTime >>= \t2 ->
     print (Time.diffUTCTime t2 t1)
 
-type Image = Int -> Int -> Word32
+type Image = Int -> Int -> Word64
 
 type Seed = Integer
 
@@ -30,8 +34,8 @@ square x = x * x
 circle :: Seed -> Image
 circle seed = \x y ->
     let
-      dX = square (x - 250)
-      dY = square (y - 250)
+      dX = square (x - (width `div` 2))
+      dY = square (y - (height `div` 2))
       s = dX + dY
     in
       if s > 3600 && s < 4225 then c1 else c2
@@ -39,13 +43,13 @@ circle seed = \x y ->
     c1 = rgb 150 0 150
     c2 = rgb 255 180 (fromInteger (seed `mod` 255))
 
-write :: Ptr Word32 -> Image -> IO ()
+write :: Ptr Word64 -> Image -> IO ()
 write p f =
   traverse_ (\(i, c) -> pokeElemOff p i c) $
     zipWith
-      (\(y, x) i -> (i, f x y))
-      ((,) <$> [0..500] <*> [0..499])
-      [0..]
+      (\(y, x) i -> (i, f (x + 1) y `shift` 32 .|. f x y))
+      ((,) <$> [0 .. height - 1] <*> [0, 2 .. width - 1])
+      [0 ..]
 
-rgb :: Word32 -> Word32 -> Word32 -> Word32
-rgb r g b = shift r 16 .|. shift g 8 .|. b :: Word32
+rgb :: Word64 -> Word64 -> Word64 -> Word64
+rgb r g b = shift r 16 .|. shift g 8 .|. b :: Word64

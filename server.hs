@@ -15,6 +15,10 @@ import System.Posix.Types
 import Foreign.Ptr (Ptr, castPtr)
 import Foreign.ForeignPtr
 
+width, height :: Num a => a
+width = 800
+height = 500
+
 main :: IO ()
 main = withSetup eventLoop
 
@@ -47,15 +51,15 @@ withSetup go =
 
     -- initialize image
     -- don't need this anymore because openSharedMemory is allocating it instead
-    -- callocBytes (500 * 500 * 4) >>= \imageData ->
+    -- callocBytes (width height * 4) >>= \imageData ->
 
-    bracket (openSharedMemory "pixels" (500 * 500 * 4) (ShmOpenFlags True True True True) (ownerRead .|. ownerWrite)) (\(x, fd) -> shmUnlink "pixels") \(sharedImageDataForeignPtr, _) ->
+    bracket (openSharedMemory "pixels" (width * height * 4) (ShmOpenFlags True True True True) (ownerRead .|. ownerWrite)) (\(x, fd) -> shmUnlink "pixels") \(sharedImageDataForeignPtr, _) ->
     withForeignPtr sharedImageDataForeignPtr \imageData' ->
     pure (castPtr imageData' :: Ptr CChar) >>= \imageData ->
 
-    --bracket (X.createImage display visual depth X.zPixmap 0 imageData 500 500 8 0) X.destroyImage \image ->
+    --bracket (X.createImage display visual depth X.zPixmap 0 imageData width height 8 0) X.destroyImage \image ->
     --todo: when we destroy the image, X frees the memory, and that's not what we want
-    X.createImage display visual depth X.zPixmap 0 imageData 500 500 8 0 >>= \image ->
+    X.createImage display visual depth X.zPixmap 0 imageData width height 8 0 >>= \image ->
 
     X.allocaXEvent \eventPtr ->
     pure Setup{ atoms, display, window, gc, image, eventPtr } >>= \setup ->
@@ -79,7 +83,7 @@ eventLoop setup@Setup{ display, eventPtr } =
        | otherwise -> loop
 
 putImage :: Setup -> IO ()
-putImage Setup { display, window, gc, image } = X.putImage display window gc image 0 0 0 0 500 500
+putImage Setup { display, window, gc, image } = X.putImage display window gc image 0 0 0 0 width height
 
 isExposeEvent :: X.Event -> Bool
 isExposeEvent = \case X.ExposeEvent{} -> True; _ -> False
@@ -102,7 +106,7 @@ createWindow display =
     pure (X.defaultVisualOfScreen screen) >>= \visual ->
     X.createWindow display parent
         0 0 -- position
-        500 500 -- size
+        width height
         0 -- border width
         depth
         X.inputOutput
