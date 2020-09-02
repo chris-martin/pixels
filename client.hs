@@ -1,41 +1,47 @@
 import Relude
 import Control.Exception (bracket)
-import qualified Graphics.X11 as X
-import qualified Graphics.X11.Xlib.Extras as X
-import Foreign.C.Types (CChar, CInt)
-import Foreign.Marshal.Alloc (callocBytes)
-import Foreign.Storable
-import Data.Bits
-import Data.Time (getCurrentTime, diffUTCTime)
-import SharedMemory
+import Foreign.C.Types (CChar)
+import Foreign.Marshal.Array (copyArray)
+import Data.Bits (shift, (.|.))
+import qualified Data.Time as Time
+import SharedMemory (openSharedMemory)
 import System.Posix.IO (closeFd)
-import System.Posix.SharedMem
-import System.Posix.Types
+import System.Posix.SharedMem (ShmOpenFlags (..))
 import Foreign.Ptr (Ptr, castPtr)
-import Foreign.ForeignPtr
+import Foreign.ForeignPtr (finalizeForeignPtr, withForeignPtr)
+import Data.ByteString.Unsafe (unsafeUseAsCString)
+import qualified Data.ByteString.Lazy as LBS
+import qualified Data.ByteString.Builder as BSB
+import qualified Data.ByteString.Builder.Extra as BSB
 
+main :: IO ()
 main =
-    getCurrentTime >>= \t1 ->
+    Time.getCurrentTime >>= \t1 ->
+    pure (Time.diffTimeToPicoseconds $ Time.utctDayTime t1) >>= \seed ->
     bracket (openSharedMemory "pixels" (500 * 500 * 4) (ShmOpenFlags True False False True) 0) (\(x, fd) -> finalizeForeignPtr x <> closeFd fd) \(sharedImageDataForeignPtr, _) ->
     withForeignPtr sharedImageDataForeignPtr \imageData' ->
-    pure (castPtr imageData' :: Ptr Word32) >>= \imageData ->
-    let
-      c1 = rgb 150 0 150
-      c2 = rgb 255 180 255
-      rgb r g b = shift r 16 .|. shift g 8 .|. b
-    in
-      traverse_
-          (\(x, y) ->
-            let
-              dX = square (x - 250)
-              dY = square (y - 250)
-              s = dX + dY
-              c = if s > 3600 && s < 4225 then c1 else c2
-            in
-              pokeElemOff imageData (y * 500 + x) c
-          )       ((,) <$> [0..499] <*> [0..499])
-    *>
-    getCurrentTime >>= \t2 ->
-    print (diffUTCTime t2 t1)
+    pure (castPtr imageData' :: Ptr CChar) >>= \imageData ->
+    unsafeUseAsCString (LBS.toStrict (lbs seed)) (\p -> copyArray imageData p (500 * 500 * 4)) *>
+    Time.getCurrentTime >>= \t2 ->
+    print (Time.diffUTCTime t2 t1)
 
+square :: Int -> Int
 square x = x * x
+
+lbs :: Integer -> LBS.ByteString
+lbs seed = BSB.toLazyByteStringWith (BSB.untrimmedStrategy (500 * 500 * 4) (500 * 500 * 4)) mempty bsb
+  where
+    c1 = rgb 150 0 150
+    c2 = rgb 255 180 (fromInteger (seed `mod` 255))
+
+    bsb = foldMap (\y -> foldMap (\x -> BSB.word32LE (circle c1 c2 x y)) [0 .. 499]) [0 .. 499]
+
+rgb :: Word32 -> Word32 -> Word32 -> Word32
+rgb r g b = shift r 16 .|. shift g 8 .|. b :: Word32
+
+circle :: Word32 -> Word32 -> Int -> Int -> Word32
+circle c1 c2 x y = if s > 3600 && s < 4225 then c1 else c2
+  where
+    dX = square (x - 250)
+    dY = square (y - 250)
+    s = dX + dY
