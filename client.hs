@@ -6,6 +6,7 @@ import Foreign.C.Types (CChar, CInt)
 import Foreign.Marshal.Alloc (callocBytes)
 import Foreign.Storable
 import Data.Bits
+import Data.Time (getCurrentTime, diffUTCTime)
 import SharedMemory
 import System.Posix.IO (closeFd)
 import System.Posix.SharedMem
@@ -14,23 +15,27 @@ import Foreign.Ptr (Ptr, castPtr)
 import Foreign.ForeignPtr
 
 main =
+    getCurrentTime >>= \t1 ->
     bracket (openSharedMemory "pixels" (500 * 500 * 4) (ShmOpenFlags True False False True) 0) (\(x, fd) -> finalizeForeignPtr x <> closeFd fd) \(sharedImageDataForeignPtr, _) ->
     withForeignPtr sharedImageDataForeignPtr \imageData' ->
-    pure (castPtr imageData' :: Ptr CChar) >>= \imageData ->
+    pure (castPtr imageData' :: Ptr Word32) >>= \imageData ->
     let
-      c1 = (150, 0, 150)
-      c2 = (255, 180, 255)
+      c1 = rgb 150 0 150
+      c2 = rgb 255 180 255
+      rgb r g b = shift r 16 .|. shift g 8 .|. b
     in
       traverse_
           (\(x, y) ->
             let
-              dX = (fromIntegral x - 250 :: Double) ^ (2 :: Int)
-              dY = (fromIntegral y - 250 :: Double) ^ (2 :: Int)
+              dX = square (x - 250)
+              dY = square (y - 250)
               s = dX + dY
-              (r, g, b) = if s > 3600 && s < 4225 then c1 else c2
+              c = if s > 3600 && s < 4225 then c1 else c2
             in
-              pokeElemOff imageData (4 * (y * 500 + x) + 0) r *>
-              pokeElemOff imageData (4 * (y * 500 + x) + 1) g *>
-              pokeElemOff imageData (4 * (y * 500 + x) + 2) b
-          )
-          ((,) <$> [0..499] <*> [0..499])
+              pokeElemOff imageData (y * 500 + x) c
+          )       ((,) <$> [0..499] <*> [0..499])
+    *>
+    getCurrentTime >>= \t2 ->
+    print (diffUTCTime t2 t1)
+
+square x = x * x
