@@ -1,4 +1,4 @@
-module Pixels.Server.Main where
+module Pixels.Window.Main where
 
 import Relude
 import Control.Exception (bracket)

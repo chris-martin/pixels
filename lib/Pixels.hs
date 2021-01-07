@@ -2,7 +2,7 @@ module Pixels where
 
 import Prelude
 
-import qualified Pixels.Server
+import qualified Pixels.Window
 
-runServer :: IO ()
-runServer = Pixels.Server.main
+runWindow :: IO ()
+runWindow = Pixels.Window.main

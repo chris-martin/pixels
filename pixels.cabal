@@ -1,0 +1,44 @@
+cabal-version: 3.0
+
+name: pixels
+version: 0
+
+common base
+    default-language: Haskell2010
+    ghc-options: -Wall
+    build-depends:
+        base
+      , relude
+      , shared-memory
+      , time
+      , unix
+      , X11
+    default-extensions:
+        BlockArguments
+        LambdaCase
+        MultiWayIf
+        NamedFieldPuns
+        NoImplicitPrelude
+        RecordWildCards
+        ViewPatterns
+
+common lib
+    import: base
+    hs-source-dirs: lib
+
+common exe
+    import: base
+    hs-source-dirs: exe
+    build-depends: pixels
+
+library
+    import: lib
+    exposed-modules:
+        Pixels
+        Pixels.Client.Main
+        Pixels.Window
+        Pixels.Window.Main
+
+executable pixels-window
+    import: exe
+    main-is: pixels-window.hs
