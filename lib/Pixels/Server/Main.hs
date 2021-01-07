@@ -1,6 +1,4 @@
-#! /usr/bin/env -S ghc -e Main.main -Wall -package relude -package shared-memory -package X11 -XBlockArguments -XLambdaCase -XMultiWayIf -XNamedFieldPuns -XNoImplicitPrelude -XRecordWildCards -XViewPatterns
-
-module Main (main) where
+module Pixels.Server.Main where
 
 import Relude
 import Control.Exception (bracket)

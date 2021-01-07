@@ -1,0 +1,2 @@
+#! /usr/bin/env sh
+ghc -ilib Pixels -e runServer -Wall -package relude -package shared-memory -package X11 -XBlockArguments -XLambdaCase -XMultiWayIf -XNamedFieldPuns -XNoImplicitPrelude -XRecordWildCards -XViewPatterns

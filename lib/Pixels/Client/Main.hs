@@ -1,3 +1,5 @@
+module Pixels.Client.Main where
+
 import Relude
 import Control.Exception (bracket)
 import Data.Bits (shift, (.|.))
