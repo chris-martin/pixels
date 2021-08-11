@@ -1,3 +1,8 @@
 module Main (main) where
 
-import Pixels.Window.Main
+import Prelude (IO)
+
+import qualified Pixels
+
+main :: IO ()
+main = Pixels.runWindow
